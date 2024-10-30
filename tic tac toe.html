@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #222;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    .game-header {
+      font-size: 3rem;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .cell {
+      background: #444;
+      color: #ff9f80;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .cell:hover {
+      background: #666;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin: 1rem 0;
+      gap: 1rem;
+    }
+
+    .score {
+      background: #333;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      text-align: center;
+      color: #ff9f80;
+      font-size: 1.2rem;
+      font-weight: bold;
+      width: 120px;
+    }
+
+    .score.active {
+      background: #ff9f80;
+      color: #222;
+    }
+
+    .popup {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #222;
+    }
+
+    .popup.show {
+      display: flex;
+    }
+
+    .popup .closeButton {
+      background: #ffa0806a;
+      color: #ff9f80;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+
+    .turn-indicator {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ff9f80;
+      margin-bottom: 1rem;
+    }
+
+    .popup button:hover {
+      background: #ffb0a5;
+    }
+  </style>
+</head>
+<body>
+  <div class="text-center">
+    <div class="game-header">Tic Tac Toe</div>
+
+    <div id="turnIndicator" class="turn-indicator hidden">Player 1's Turn (X)</div>
+
+    <div class="scoreboard">
+        <div id="scoreXMain" class="flex flex-col justify-between score active">
+            <span class="text-6xl text-white">X</span>
+            <div id="scoreX" class="">0</div>
+        </div>
+        <div id="scoreOMain" class="flex flex-col justify-between score">
+            <span class="text-6xl text-white">O</span>
+            <div id="scoreO" class="">0</div>
+        </div>
+    </div>
+
+    <div id="gameBoard" class="game-board">
+      <!-- Cells will be added by JS -->
+    </div>
+
+    <button onclick="restartGame()" class="reset-button bg-orange-600 bg-opacity-10 w-full text-white hover:bg-opacity-100 py-4 px-4 rounded-xl transition-all">New Game</button>
+  </div>
+
+   <div id="winnerPopup" class="popup absolute w-screen h-screen top-0 left-0 bg-black bg-opacity-65">
+       <div class="flex flex-col items-center justify-center min-w-72 p-3 rounded-xl bg-white">
+        <span class="text-2xl font-semibold">Congratulations🎉</span>
+         <span id="winnerMessage" class="my-4 mb-2"></span>
+         <div class="flex w-full items-center justify-center gap-3 mt-4">
+             <button onclick="closePopup()" class="closeButton hover:text-white">Close</button>
+             <button onclick="restartGame()" class="reset-button bg-[#ff9f80] w-full text-white py-2 px-4 rounded-xl">New Game</button>
+         </div>
+       </div>
+</div>
+
+  <script>
+    const board = Array(9).fill(null);
+    let currentPlayer = 'X';
+    let scoreX = 0;
+    let scoreO = 0;
+
+    function initializeBoard() {
+      const gameBoard = document.getElementById('gameBoard');
+      gameBoard.innerHTML = '';
+      board.forEach((_, index) => {
+        const cell = document.createElement('div');
+        cell.classList = 'cell';
+        cell.setAttribute('data-index', index);
+        cell.onclick = handleCellClick;
+        gameBoard.appendChild(cell);
+      });
+    }
+
+    function handleCellClick(event) {
+      const cellIndex = event.target.getAttribute('data-index');
+      if (board[cellIndex] || checkWin()) return;
+
+      board[cellIndex] = currentPlayer;
+      event.target.textContent = currentPlayer;
+
+      if (checkWin()) {
+        displayPopup(`Player ${currentPlayer === 'X' ? 'X' : 'O'} wins! 🎉`);
+        updateScore(currentPlayer);
+        return;
+      } else if (board.every(cell => cell)) {
+        displayPopup("It's a tie! 🤝");
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      updateTurnIndicator();
+    }
+
+    function checkWin() {
+      const winningCombinations = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+      return winningCombinations.some(combination => {
+        const [a, b, c] = combination;
+        return board[a] && board[a] === board[b] && board[a] === board[c];
+      });
+    }
+
+    function updateScore(player) {
+      if (player === 'X') {
+        scoreX++;
+        document.getElementById('scoreX').innerHTML = `${scoreX}`;
+      } else {
+        scoreO++;
+        document.getElementById('scoreO').innerHTML = `${scoreO}`;
+      }
+    }
+
+    function displayPopup(message) {
+      const popup = document.getElementById('winnerPopup');
+      const messageElement = document.getElementById('winnerMessage');
+      messageElement.textContent = message;
+      popup.classList.add('show');
+    }
+
+    function closePopup() {
+      const popup = document.getElementById('winnerPopup');
+      popup.classList.remove('show');
+    }
+
+    function updateTurnIndicator() {
+      const turnIndicator = document.getElementById('turnIndicator');
+      turnIndicator.textContent = `Player ${currentPlayer === 'X' ? '1' : '2'}'s Turn (${currentPlayer})`;
+
+      document.getElementById('scoreXMain').classList.toggle('active', currentPlayer === 'X');
+      document.getElementById('scoreOMain').classList.toggle('active', currentPlayer === 'O');
+    }
+
+    function restartGame() {
+        closePopup();
+      board.fill(null);
+      currentPlayer = 'X';
+      initializeBoard();
+      updateTurnIndicator();
+    }
+
+    initializeBoard();
+  </script>
+</body>
+</html>
